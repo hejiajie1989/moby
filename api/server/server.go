@@ -1369,6 +1369,7 @@ func ServeApi(job *engine.Job) engine.Status {
 
 func AcceptConnections(job *engine.Job) engine.Status {
 	// Tell the init daemon we are accepting requests
+	// 为什么api创建好了 可以开始服务了需要通知到init守护进程
 	go systemd.SdNotify("READY=1")
 
 	// close the lock so the listeners start accepting connections

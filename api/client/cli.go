@@ -100,7 +100,7 @@ func NewDockerCli(in io.ReadCloser, out, err io.Writer, proto, addr string, tlsC
 		err = out
 	}
 	return &DockerCli{
-		proto:      proto,
+		proto:      proto, //client与server之间的传输协议
 		addr:       addr,
 		in:         in,
 		out:        out,

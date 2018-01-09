@@ -76,6 +76,10 @@ var (
 	currentInterfaces = ifaces{c: make(map[string]*networkInterface)}
 )
 
+// 1. 获取为Docker服务的网络设备地址
+// 2. 创建指定IP地址的网桥
+// 3. 配置网络iptables的规则
+// 4. 还为eng对象注册了多个Handler，比如allocate_interface, release_interface, allocate_port和link等
 func InitDriver(job *engine.Job) engine.Status {
 	var (
 		network        *net.IPNet

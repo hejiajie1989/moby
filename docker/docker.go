@@ -51,6 +51,7 @@ func main() {
 	}
 
 	if *flDaemon {
+		//这里是进入到执行Docker Daemon的过程
 		mainDaemon()
 		return
 	}
@@ -58,11 +59,12 @@ func main() {
 	if len(flHosts) > 1 {
 		log.Fatal("Please specify only one -H")
 	}
+	//提供Docker client与Docker Server的通信协议以及通信地址
 	protoAddrParts := strings.SplitN(flHosts[0], "://", 2)
 
 	var (
 		cli       *client.DockerCli
-		tlsConfig tls.Config
+		tlsConfig tls.Config //为了保证cli在传输数据的时候遵循安全传输层协议
 	)
 	tlsConfig.InsecureSkipVerify = true
 
@@ -96,6 +98,7 @@ func main() {
 	if *flTls || *flTlsVerify {
 		cli = client.NewDockerCli(os.Stdin, os.Stdout, os.Stderr, protoAddrParts[0], protoAddrParts[1], &tlsConfig)
 	} else {
+		//创建Docker Client实例
 		cli = client.NewDockerCli(os.Stdin, os.Stdout, os.Stderr, protoAddrParts[0], protoAddrParts[1], nil)
 	}
 

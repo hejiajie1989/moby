@@ -76,6 +76,7 @@ func (job *Job) Run() error {
 		job.Errorf("%s: command not found", job.Name)
 		job.status = 127
 	} else {
+		//这里就是真正执行在handlers中找到的Handler函数
 		job.status = job.handler(job)
 		job.end = time.Now()
 	}

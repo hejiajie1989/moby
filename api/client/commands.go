@@ -1223,6 +1223,7 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 			base64.URLEncoding.EncodeToString(buf),
 		}
 
+		//向docker server发送POST请求
 		return cli.stream("POST", "/images/create?"+v.Encode(), nil, cli.out, map[string][]string{
 			"X-Registry-Auth": registryAuthHeader,
 		})

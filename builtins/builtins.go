@@ -14,18 +14,23 @@ import (
 )
 
 func Register(eng *engine.Engine) error {
+	// 宿主机的网络初始化
 	if err := daemon(eng); err != nil {
 		return err
 	}
+	//serverApi的注册
 	if err := remote(eng); err != nil {
 		return err
 	}
+	//注册event事件的处理方法
 	if err := events.New().Install(eng); err != nil {
 		return err
 	}
+	//注册版本处理办法
 	if err := eng.Register("version", dockerVersion); err != nil {
 		return err
 	}
+	//注册reigster处理方法
 	return registry.NewService().Install(eng)
 }
 
@@ -34,6 +39,7 @@ func remote(eng *engine.Engine) error {
 	if err := eng.Register("serveapi", apiserver.ServeApi); err != nil {
 		return err
 	}
+	//通知init进程我们可以开始服务了
 	return eng.Register("acceptconnections", apiserver.AcceptConnections)
 }
 

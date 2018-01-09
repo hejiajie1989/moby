@@ -672,11 +672,14 @@ func NewDaemon(config *Config, eng *engine.Engine) (*Daemon, error) {
 
 func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error) {
 	// Apply configuration defaults
+	// 配置MTU
 	if config.Mtu == 0 {
 		// FIXME: GetDefaultNetwork Mtu doesn't need to be public anymore
 		config.Mtu = GetDefaultNetworkMtu()
 	}
 	// Check for mutually incompatible config options
+	// 检测网桥配置信息
+	// 如果使用已经存在的网桥那就不需要指定新的IP 这两个变量是互斥的
 	if config.BridgeIface != "" && config.BridgeIP != "" {
 		return nil, fmt.Errorf("You specified -b & --bip, mutually exclusive options. Please specify only one.")
 	}
@@ -703,14 +706,17 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 	if runtime.GOOS != "linux" {
 		log.Fatalf("The Docker daemon is only supported on linux")
 	}
+	// 检查用户的权限，必须要是root用户
 	if os.Geteuid() != 0 {
 		log.Fatalf("The Docker daemon needs to be run as root")
 	}
+	//检查内核版本以及主机处理器类型
 	if err := checkKernelAndArch(); err != nil {
 		log.Fatalf(err.Error())
 	}
 
 	// set up the TempDir to use a canonical path
+	//配置工作路径
 	tmp, err := utils.TempDir(config.Root)
 	if err != nil {
 		log.Fatalf("Unable to get the TempDir under %s: %s", config.Root, err)
@@ -740,6 +746,7 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 		return nil, err
 	}
 
+	//加载并配置graphdriver
 	// Set the default driver
 	graphdriver.DefaultDriver = config.GraphDriver
 
@@ -755,6 +762,7 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 		return nil, fmt.Errorf("SELinux is not supported with the BTRFS graph driver!")
 	}
 
+	//创建容器仓库目录
 	daemonRepo := path.Join(config.Root, "containers")
 
 	if err := os.MkdirAll(daemonRepo, 0700); err != nil && !os.IsExist(err) {
@@ -778,17 +786,22 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 	if err != nil {
 		return nil, err
 	}
+
+	//创建volumesdriver
 	log.Debugf("Creating volumes graph")
 	volumes, err := graph.NewGraph(path.Join(config.Root, "volumes"), volumesDriver)
 	if err != nil {
 		return nil, err
 	}
+
+	//创建TagStore
 	log.Debugf("Creating repository list")
 	repositories, err := graph.NewTagStore(path.Join(config.Root, "repositories-"+driver.String()), g)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't create Tag store: %s", err)
 	}
 
+	//配置docker daemon网络环境
 	if !config.DisableNetwork {
 		job := eng.Job("init_networkdriver")
 
