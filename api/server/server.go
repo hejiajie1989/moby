@@ -1050,6 +1050,7 @@ func makeHttpHandler(eng *engine.Engine, logging bool, localMethod string, local
 			version = api.APIVERSION
 		}
 		if enableCors {
+			// 写入跨域信息
 			writeCorsHeaders(w, r)
 		}
 
@@ -1246,6 +1247,7 @@ func changeGroup(addr string, nameOrGid string) error {
 // each addr passed in and does protocol specific checking.
 func ListenAndServe(proto, addr string, job *engine.Job) error {
 	var l net.Listener
+	// 创建Router
 	r, err := createRouter(job.Eng, job.GetenvBool("Logging"), job.GetenvBool("EnableCors"), job.Getenv("Version"))
 	if err != nil {
 		return err
@@ -1267,6 +1269,9 @@ func ListenAndServe(proto, addr string, job *engine.Job) error {
 	}
 
 	if job.GetenvBool("BufferRequests") {
+		// 创建监听listener
+		// 这里可以在Docker Daemon全部启动完毕之前，可以先将apiServer的请求给缓存起来，等到启动完毕之后再来处理
+		// 但是很好奇 这些请求都是缓存在哪里的, 没看到有Buffer之类的数据成员啊？
 		l, err = listenbuffer.NewListenBuffer(proto, addr, activationLock)
 	} else {
 		l, err = net.Listen(proto, addr)
@@ -1344,6 +1349,7 @@ func ServeApi(job *engine.Job) engine.Status {
 		protoAddrs = job.Args
 		chErrors   = make(chan error, len(protoAddrs))
 	)
+	// 同步serveApi和acceptConnection两个Job的channel
 	activationLock = make(chan struct{})
 
 	for _, protoAddr := range protoAddrs {
