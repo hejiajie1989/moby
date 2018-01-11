@@ -80,6 +80,7 @@ var (
 // 2. 创建指定IP地址的网桥
 // 3. 配置网络iptables的规则
 // 4. 还为eng对象注册了多个Handler，比如allocate_interface, release_interface, allocate_port和link等
+// 配置Docker Daemon的网络运行环境
 func InitDriver(job *engine.Job) engine.Status {
 	var (
 		network        *net.IPNet
@@ -108,6 +109,7 @@ func InitDriver(job *engine.Job) engine.Status {
 			return job.Error(err)
 		}
 		// If the iface is not found, try to create it
+		// 创建网桥, 通过libcontainer包中netlink的CreateBridge实现
 		job.Logf("creating new bridge for %s", bridgeIface)
 		if err := createBridge(bridgeIP); err != nil {
 			return job.Error(err)
@@ -134,7 +136,13 @@ func InitDriver(job *engine.Job) engine.Status {
 	}
 
 	// Configure iptables for link support
+	// 启用iptables功能并进行配置
 	if enableIPTables {
+		// 为Docker容器之间的link操作提供iptables防火墙支持
+		// iptables -I POSTROUTING -t nat -s docker0_ip ! -o docker0 -j MASQUERADE 开启新建网桥的NAT功能
+		// iptables -I FORWARD -i docker0 -o docker0 -j ACCEPT 允许容器之间的数据包
+		// iptables -I FORWARD -i docker0 ! -o docker0 -j ACCEPT 允许容器发出的， 目的是非容器的数据包
+		// iptables -I FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT  对于已经建立连接的数据包，Docker无条件接收
 		if err := setupIPTables(addr, icc); err != nil {
 			return job.Error(err)
 		}
@@ -147,6 +155,7 @@ func InitDriver(job *engine.Job) engine.Status {
 		}
 	}
 
+	// 创建一条Docker链，作用是在创建DOcker容器时实现容器与宿主机的端口映射
 	// We can always try removing the iptables
 	if err := iptables.RemoveExistingChain("DOCKER"); err != nil {
 		return job.Error(err)
@@ -166,10 +175,10 @@ func InitDriver(job *engine.Job) engine.Status {
 	job.Eng.Hack_SetGlobalVar("httpapi.bridgeIP", bridgeNetwork.IP)
 
 	for name, f := range map[string]engine.Handler{
-		"allocate_interface": Allocate,
-		"release_interface":  Release,
-		"allocate_port":      AllocatePort,
-		"link":               LinkContainers,
+		"allocate_interface": Allocate,       //为Docker容器分配专属网络接口，分配容器网段的IP地址
+		"release_interface":  Release,        // 释放Docker容器占用的网络接口资源
+		"allocate_port":      AllocatePort,   // 为Docker容器分配端口
+		"link":               LinkContainers, // 实现Docker容器间的连接操作
 	} {
 		if err := job.Eng.Register(name, f); err != nil {
 			return job.Error(err)

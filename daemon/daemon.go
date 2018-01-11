@@ -817,6 +817,7 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 		}
 	}
 
+	//下面这个是创建graphdb的，用来记录容器之间的link关系的，是基于sqlite3实现的
 	graphdbPath := path.Join(config.Root, "linkgraph.db")
 	graph, err := graphdb.NewSqliteConn(graphdbPath)
 	if err != nil {
@@ -864,9 +865,11 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 		execDriver:     ed,
 		eng:            eng,
 	}
+	// 检查DNS配置
 	if err := daemon.checkLocaldns(); err != nil {
 		return nil, err
 	}
+	//启动时加载已有的Docker容器
 	if err := daemon.restore(); err != nil {
 		return nil, err
 	}

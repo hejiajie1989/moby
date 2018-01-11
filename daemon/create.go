@@ -7,6 +7,7 @@ import (
 	"github.com/docker/docker/runconfig"
 )
 
+//create Container
 func (daemon *Daemon) ContainerCreate(job *engine.Job) engine.Status {
 	var name string
 	if len(job.Args) == 1 {
@@ -70,9 +71,11 @@ func (daemon *Daemon) Create(config *runconfig.Config, name string) (*Container,
 	if warnings, err = daemon.mergeAndVerifyConfig(config, img); err != nil {
 		return nil, nil, err
 	}
+	// 创建container
 	if container, err = daemon.newContainer(name, config, img); err != nil {
 		return nil, nil, err
 	}
+	// 创建Docker容器的rootfs
 	if err := daemon.createRootfs(container, img); err != nil {
 		return nil, nil, err
 	}

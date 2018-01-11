@@ -294,6 +294,7 @@ func (container *Container) Start() (err error) {
 	if err := container.Mount(); err != nil {
 		return err
 	}
+	//初始化与网络相关的属性
 	if err := container.initializeNetworking(); err != nil {
 		return err
 	}
@@ -309,6 +310,7 @@ func (container *Container) Start() (err error) {
 		return err
 	}
 	env := container.createDaemonEnvironment(linkedEnv)
+	// docker 内部需要执行的命令
 	if err := populateCommand(container, env); err != nil {
 		return err
 	}
@@ -316,6 +318,9 @@ func (container *Container) Start() (err error) {
 		return err
 	}
 
+	// 开始启动容器
+	// 1. 首先经过execdriver
+	// 2. 然后经过libcontainer，最后是到linux 内核
 	return container.waitForStart()
 }
 
@@ -881,6 +886,7 @@ func (container *Container) setupContainerDns() error {
 func (container *Container) initializeNetworking() error {
 	var err error
 	if container.hostConfig.NetworkMode.IsHost() {
+		// Host模式
 		container.Config.Hostname, err = os.Hostname()
 		if err != nil {
 			return err
@@ -912,6 +918,7 @@ func (container *Container) initializeNetworking() error {
 		return ioutil.WriteFile(container.HostsPath, content, 0644)
 	} else if container.hostConfig.NetworkMode.IsContainer() {
 		// we need to get the hosts files from the container to join
+		// 网络是container模式，就是和别的containershare一个network space，
 		nc, err := container.getNetworkedContainer()
 		if err != nil {
 			return err
@@ -921,9 +928,13 @@ func (container *Container) initializeNetworking() error {
 		container.Config.Hostname = nc.Config.Hostname
 		container.Config.Domainname = nc.Config.Domainname
 	} else if container.daemon.config.DisableNetwork {
+		// 网络是none模式
 		container.Config.NetworkDisabled = true
 		return container.buildHostnameAndHostsFiles("127.0.1.1")
 	} else {
+		// 最后就是bridge模式
+		// 1. 通过allocateNetwork为容器分配一个可用的IP地址,并将网络配置赋值给container对象的NetworkSettings
+		// 2. 通过NetworkSettings为容器创建hosts，hostname等文件
 		if err := container.allocateNetwork(); err != nil {
 			return err
 		}
