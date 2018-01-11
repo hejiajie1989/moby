@@ -1079,6 +1079,7 @@ func (container *Container) startLoggingToDisk() error {
 }
 
 func (container *Container) waitForStart() error {
+	// containerMonitor对象用来监视容器进程的执行
 	container.monitor = newContainerMonitor(container, container.hostConfig.RestartPolicy)
 
 	// block until we either receive an error from the initial start of the container's
