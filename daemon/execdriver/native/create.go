@@ -113,6 +113,7 @@ func (d *driver) createNetwork(container *libcontainer.Config, c *execdriver.Com
 		}
 		cmd := active.cmd
 
+		//共用container的net namespace
 		nspath := filepath.Join("/proc", fmt.Sprint(cmd.Process.Pid), "ns", "net")
 		container.Networks = append(container.Networks, &libcontainer.Network{
 			Type:   "netns",

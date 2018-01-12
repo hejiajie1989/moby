@@ -59,8 +59,12 @@ func NewDriver(root, initPath string) (*driver, error) {
 	}, nil
 }
 
+// 1. 创建libcontainer的Config对象
+// 2. 通过libcontainer中的namespaces包执行容器
 func (d *driver) Run(c *execdriver.Command, pipes *execdriver.Pipes, startCallback execdriver.StartCallback) (int, error) {
 	// take the Command and populate the libcontainer.Config from it
+	// template.New()
+	// createNetwork()
 	container, err := d.createContainer(c)
 	if err != nil {
 		return -1, err
